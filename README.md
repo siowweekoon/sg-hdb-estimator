@@ -36,10 +36,9 @@ Repository Settings -> Pages -> Deploy from a branch -> `main` / root. The site 
 
 ## Demand test analytics
 
-GitHub does not report visits to a Pages site. Create a free [GoatCounter](https://www.goatcounter.com)
-site and put its address in the commented snippet near the top of `index.html`. The page records one
-event each time someone gets an estimate. GoatCounter's free plan is for non-commercial use; switch
-before charging for anything.
+GitHub does not report visits to a Pages site, so the page uses [GoatCounter](https://www.goatcounter.com)
+(site code `weekoon22`) to count visits, and records one event each time someone gets an estimate.
+GoatCounter's free plan is for non-commercial use; switch before charging for anything.
 
 ## For AI agents
 
