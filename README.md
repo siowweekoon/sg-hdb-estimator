@@ -25,9 +25,8 @@ data must keep this notice conspicuous.
 - `data/hdb-recent.json` - last 36 months, compact. Rebuilt automatically.
 - `scripts/build-data.mjs` - downloads the dataset from data.gov.sg and rebuilds the JSON.
 - `scripts/backtest.mjs` - the accuracy test.
-- `scripts/refresh-data.workflow.yml` - the automatic refresh job. To turn it on, create the file
-  `.github/workflows/refresh-data.yml` in this repository (GitHub website: Add file -> Create new file) and
-  paste this file's contents. It rebuilds the data twice a month. GitHub disables scheduled
+- `.github/workflows/refresh-data.yml` - rebuilds the data twice a month (5th and 20th) and on demand.
+  GitHub disables scheduled
   workflows in a repository with no activity for 60 days; if the data date on the page stops moving,
   re-enable it under the repository's Actions tab.
 
