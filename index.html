@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Singapore HDB resale price check</title>
+<meta name="description" content="Free indicative price range for an HDB resale flat, from recent registered sales. Tested on unseen sales: typical error about 5%.">
+<style>
+  :root { --fg:#1d2430; --muted:#5b6575; --line:#dde2ea; --accent:#0b5fff; --bg:#f6f8fb; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; color:var(--fg); background:var(--bg); }
+  main { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.6rem; margin: .2rem 0 .3rem; }
+  .sub { color: var(--muted); margin: 0 0 1.2rem; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+  form { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  label { display:block; font-size:.85rem; color:var(--muted); margin-bottom:4px; }
+  select, input { width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; font:inherit; background:#fff; }
+  .full { grid-column: 1 / -1; }
+  button { padding:12px; border:0; border-radius:8px; background:var(--accent); color:#fff; font:inherit; font-weight:600; cursor:pointer; }
+  button:hover { filter: brightness(1.08); }
+  .price { font-size: 2rem; font-weight: 700; margin: 0; }
+  .range { color: var(--muted); margin: .2rem 0 1rem; }
+  table { width:100%; border-collapse: collapse; font-size:.9rem; }
+  th, td { text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:500; }
+  .note { color:var(--muted); font-size:.85rem; margin:.3rem 0; }
+  .err { color:#b42318; }
+  footer { color:var(--muted); font-size:.8rem; }
+  details summary { cursor:pointer; font-weight:600; }
+  @media (max-width: 520px) { form { grid-template-columns: 1fr; } }
+</style>
+<!-- DEMAND TEST ANALYTICS: create a free GoatCounter site, then replace YOURCODE and remove the comment markers.
+<script data-goatcounter="https://YOURCODE.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+-->
+</head>
+<body>
+<main>
+  <h1>Singapore HDB resale price check</h1>
+  <p class="sub">An indicative price range for an HDB flat, based on recent registered sales. Free. No sign-up. Runs in your browser.</p>
+
+  <div class="card">
+    <form id="f">
+      <div><label for="town">Town</label><select id="town" required></select></div>
+      <div><label for="type">Flat type</label><select id="type" required></select></div>
+      <div><label for="area">Floor area, sqm (optional)</label><input id="area" type="number" min="20" max="200" step="1" placeholder="e.g. 93"></div>
+      <div><label for="storey">Floor number (optional)</label><input id="storey" type="number" min="1" max="60" step="1" placeholder="e.g. 10"></div>
+      <div class="full"><label for="lease">Remaining lease, years (optional)</label><input id="lease" type="number" min="1" max="99" step="0.1" placeholder="e.g. 70"></div>
+      <div class="full"><button type="submit">Check price</button></div>
+    </form>
+  </div>
+
+  <div id="result" class="card" hidden></div>
+
+  <div class="card">
+    <details>
+      <summary>How accurate is this?</summary>
+      <p>We tested it on 800 real sales from May to July 2026 that it had never seen, using only earlier months for each estimate. The typical (median) error was <strong>5.0%</strong>. Simply using the town and flat-type average was off by about <strong>9.0%</strong>. The middle-50% range we show contained the actual price 48.5% of the time, close to the ideal 50%.</p>
+      <p>It does not know the exact block, view, renovation or condition, so a real flat can sell well above or below. It is a starting point for your research, <strong>not a valuation, not financial advice</strong>.</p>
+    </details>
+    <details>
+      <summary>How does it work?</summary>
+      <p>It looks at sales of the same town and flat type over the last 12 months (widened if there are few). More recent sales, and sales with a similar floor, size and remaining lease, count for more. The estimate is the weighted middle price; the range is the weighted 25th to 75th percentile. If you give a floor area, prices are compared per square metre.</p>
+    </details>
+  </div>
+
+  <footer>
+    <p id="data-note"></p>
+    <p>Contains information from HDB Resale Flat Prices accessed from <a href="https://data.gov.sg">data.gov.sg</a>, made available under the terms of the <a href="https://data.gov.sg/open-data-licence">Singapore Open Data Licence version 1.0</a>. This site is independent and is not endorsed by HDB or any Singapore Government agency.</p>
+    <p><a href="https://github.com/siowweekoon/sg-hdb-estimator">Source code and method</a></p>
+  </footer>
+</main>
+
+<script type="module">
+  import { makeIndex, estimate, EstimateError } from "./src/estimator.js";
+
+  const $ = (id) => document.getElementById(id);
+  const sgd = new Intl.NumberFormat("en-SG", { style: "currency", currency: "SGD", maximumFractionDigits: 0 });
+  let index;
+
+  try {
+    const data = await (await fetch("./data/hdb-recent.json")).json();
+    index = makeIndex(data);
+    const typeOrder = ["1 ROOM", "2 ROOM", "3 ROOM", "4 ROOM", "5 ROOM", "EXECUTIVE", "MULTI-GENERATION"];
+    for (const t of [...data.towns].sort()) $("town").add(new Option(t, t));
+    for (const t of [...data.types].sort((a, b) => typeOrder.indexOf(a) - typeOrder.indexOf(b))) $("type").add(new Option(t, t));
+    $("type").value = "4 ROOM";
+    $("data-note").textContent = `Data through ${data.dataThrough}. Refreshed automatically each month.`;
+  } catch (e) {
+    $("result").hidden = false;
+    $("result").innerHTML = '<p class="err">Could not load the sales data. Please try again later.</p>';
+  }
+
+  const num = (id) => { const v = $(id).value; return v === "" ? undefined : Number(v); };
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+  $("f").addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const box = $("result");
+    box.hidden = false;
+    try {
+      const r = estimate(index, {
+        town: $("town").value, flatType: $("type").value,
+        floorAreaSqm: num("area"), storey: num("storey"), remainingLeaseYears: num("lease"),
+      });
+      if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "estimate", title: "estimate", event: true });
+      const rows = r.topComparables.map((c) =>
+        `<tr><td>${esc(c.month)}</td><td>${esc(c.storey ?? "")}</td><td>${esc(c.areaSqm)} sqm</td><td>${esc(c.remainingYears)} yrs</td><td>${sgd.format(c.price)}</td></tr>`).join("");
+      box.innerHTML = `
+        <p class="note">Estimated price</p>
+        <p class="price">${sgd.format(r.estimate)}</p>
+        <p class="range">Likely range ${sgd.format(r.low)} to ${sgd.format(r.high)} &middot; based on ${r.comparablesUsed} sales in the last ${r.windowMonths} months</p>
+        <p class="note"><strong>Most similar recent sales</strong></p>
+        <table><thead><tr><th>Month</th><th>Floor (mid)</th><th>Size</th><th>Lease left</th><th>Price</th></tr></thead><tbody>${rows}</tbody></table>
+        ${r.notes.map((n) => `<p class="note">${esc(n)}</p>`).join("")}
+        <p class="note">Statistical estimate from past registered sales. Not a valuation, not financial advice.</p>`;
+    } catch (e) {
+      box.innerHTML = `<p class="err">${esc(e instanceof EstimateError ? e.message : "Something went wrong.")}</p>`;
+    }
+  });
+</script>
+</body>
+</html>

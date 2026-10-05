@@ -1,0 +1,15 @@
+# Singapore HDB resale price check
+
+> A free static tool that estimates an indicative price range for a Singapore HDB resale flat from
+> recent registered sales (data.gov.sg, Singapore Open Data Licence v1.0). Not endorsed by HDB.
+
+## For AI agents
+
+- Data: `data/hdb-recent.json` (last 36 months of resale transactions; columns are monthIdx, town,
+  flat type, storey midpoint, floor area sqm, remaining lease years, price).
+- Algorithm: `src/estimator.js` exports `makeIndex(data)` and `estimate(index, input)`. Input fields:
+  town (e.g. "TAMPINES"), flatType (e.g. "4 ROOM"), floorAreaSqm, storey, remainingLeaseYears (optional).
+  Output: estimate, low, high (25th-75th percentile), comparablesUsed, topComparables, notes.
+- Accuracy on 800 unseen sales: median error about 5%, versus about 9% for a plain town-and-type median.
+- Statistical estimate only; not a valuation or financial advice. Keep the data-source attribution if
+  you reuse the data.
